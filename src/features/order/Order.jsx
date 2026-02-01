@@ -4,14 +4,22 @@ import {
   calcMinutesLeft,
   formatCurrency,
   formatDate,
-} from "../../utils/helpers";
+} from '../../utils/helpers';
 
-import { useLoaderData } from "react-router-dom";
-import { getOrder } from "../../services/apiRestaurant";
-import OrderItem from "./OrderItem";
+import { useFetcher, useLoaderData } from 'react-router-dom';
+import { getOrder } from '../../services/apiRestaurant';
+import OrderItem from './OrderItem';
+import { useEffect } from 'react';
+import UpdateOrder from './UpdateOrder';
 
 function Order() {
   const order = useLoaderData();
+  const fetcher = useFetcher();
+
+  useEffect(() => {
+    if (!fetcher.data && fetcher.state === 'idle') fetcher.load('/menu');
+  }, [fetcher]);
+
   // Everyone can search for all orders, so for privacy reasons we're gonna gonna exclude names or address, these are only for the restaurant staff
   const {
     id,
@@ -57,6 +65,11 @@ function Order() {
           <OrderItem
             key={item.pizzaId}
             item={item}
+            isLoadingIngredients={fetcher.state === 'loading'}
+            ingredients={
+              fetcher?.data?.find((ele) => ele.id === item.pizzaId)
+                ?.ingredients ?? []
+            }
           />
         ))}
       </ul>
@@ -66,15 +79,15 @@ function Order() {
           Price pizza: {formatCurrency(orderPrice)}
         </p>
         {priority && (
-          <p
-            className="text-sm font-medium text-stone-600">Price priority:{' '}
-            {formatCurrency(priorityPrice)}
+          <p className="text-sm font-medium text-stone-600">
+            Price priority: {formatCurrency(priorityPrice)}
           </p>
         )}
-        <p className=" font-bold">
+        <p className="font-bold">
           To pay on delivery: {formatCurrency(orderPrice + priorityPrice)}
         </p>
       </div>
+      {!priority && <UpdateOrder />}
     </div>
   );
 }
